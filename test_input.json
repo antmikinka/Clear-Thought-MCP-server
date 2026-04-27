@@ -1,0 +1,1 @@
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sequentialthinking", "arguments": {"thought": "Test thought for debugging MCP server crash. Verifying if server handles this input correctly without EOF.", "thoughtNumber": 1, "totalThoughts": 3, "nextThoughtNeeded": true}}}

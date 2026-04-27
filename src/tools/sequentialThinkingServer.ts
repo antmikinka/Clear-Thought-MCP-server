@@ -23,14 +23,14 @@ export class SequentialThinkingServer {
 
     // Optional fields
     const isRevision = data.isRevision !== undefined ? !!data.isRevision : undefined;
-    const revisesThought = data.revisesThought !== undefined && typeof data.revisesThought === 'number' 
-      ? data.revisesThought as number 
+    const revisesThought = data.revisesThought !== undefined && typeof data.revisesThought === 'number'
+      ? data.revisesThought as number
       : undefined;
-    const branchFromThought = data.branchFromThought !== undefined && typeof data.branchFromThought === 'number' 
-      ? data.branchFromThought as number 
+    const branchFromThought = data.branchFromThought !== undefined && typeof data.branchFromThought === 'number'
+      ? data.branchFromThought as number
       : undefined;
-    const branchId = data.branchId !== undefined && typeof data.branchId === 'string' 
-      ? data.branchId as string 
+    const branchId = data.branchId !== undefined && typeof data.branchId === 'string'
+      ? data.branchId as string
       : undefined;
     const needsMoreThoughts = data.needsMoreThoughts !== undefined ? !!data.needsMoreThoughts : undefined;
 
@@ -48,10 +48,10 @@ export class SequentialThinkingServer {
   }
 
   private formatThoughtOutput(data: ThoughtData): string {
-    const { 
-      thought, 
-      thoughtNumber, 
-      totalThoughts, 
+    const {
+      thought,
+      thoughtNumber,
+      totalThoughts,
       nextThoughtNeeded,
       isRevision,
       revisesThought,
@@ -59,9 +59,9 @@ export class SequentialThinkingServer {
       branchId,
       needsMoreThoughts
     } = data;
-    
+
     let output = '';
-    
+
     // Add header based on thought type
     if (isRevision && revisesThought) {
       output += `\n${chalk.bold.yellow(`Thought ${thoughtNumber}/${totalThoughts} (Revising Thought ${revisesThought}):`)} `;
@@ -70,10 +70,10 @@ export class SequentialThinkingServer {
     } else {
       output += `\n${chalk.bold.blue(`Thought ${thoughtNumber}/${totalThoughts}:`)} `;
     }
-    
+
     // Add the thought content
     output += `${thought}\n`;
-    
+
     // Add footer with status
     if (nextThoughtNeeded) {
       output += chalk.green(`\nContinuing to next thought...\n`);
@@ -83,7 +83,7 @@ export class SequentialThinkingServer {
     } else {
       output += chalk.cyan(`\nThinking process complete.\n`);
     }
-    
+
     return output;
   }
 
@@ -102,14 +102,25 @@ export class SequentialThinkingServer {
 
   public processThought(input: unknown): ThoughtData {
     const validatedInput = this.validateThoughtData(input);
-    
+
     // Store the thought for future reference
     this.storeThought(validatedInput);
-    
-    // Log formatted output to console
+
+    // Log formatted output to console (for debugging)
     const formattedOutput = this.formatThoughtOutput(validatedInput);
     console.error(formattedOutput);
-    
-    return validatedInput;
+
+    // CRITICAL FIX: Truncate thought if too long to prevent STDIO buffer overflow
+    // Node.js stdout has ~16KB limit per write, and MCP serializes result as single JSON line
+    // Safe limit for thought field: 8000 characters (leaves room for JSON structure)
+    const MAX_THOUGHT_LENGTH = 8000;
+    const truncatedInput = {
+      ...validatedInput,
+      thought: validatedInput.thought.length > MAX_THOUGHT_LENGTH
+        ? validatedInput.thought.substring(0, MAX_THOUGHT_LENGTH) + '... [TRUNCATED: thought exceeded 8000 char limit]'
+        : validatedInput.thought
+    };
+
+    return truncatedInput;
   }
 }
